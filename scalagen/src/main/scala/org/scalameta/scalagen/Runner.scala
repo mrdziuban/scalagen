@@ -1,7 +1,7 @@
 package org.scalameta.scalagen
 
 import scala.meta._
-import scala.meta.contrib._
+import scala.meta.contrib.{ModExtractor => _, ModReplacer => _, StatExtractor => _, StatReplacer => _, _}
 import scala.meta.gen._
 import scala.collection.mutable
 import scala.meta.contrib.equality.Structurally
