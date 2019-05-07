@@ -10,16 +10,13 @@ lazy val sharedSettings: Def.SettingsDefinition = Def.settings(
   updateOptions := updateOptions.value.withCachedResolution(true),
   organization := "org.scalameta",
   version := "0.1-SNAPSHOT",
-  scalaVersion := "2.12.4",
+  scalaVersion := "2.12.8",
   libraryDependencies ++=
     "ch.qos.logback" % "logback-classic" % "1.2.3" ::
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2" ::
-      "org.scalameta" %% "scalameta" % "2.1.3" ::
-      "org.scalameta" %% "contrib" % "2.1.3" ::
-      "org.typelevel" %% "cats-core" % "1.0.1" ::
-      "org.scalactic" %% "scalactic" % "3.0.4" ::
-      "org.scalactic" %% "scalactic" % "3.0.4" ::
-      "org.scalatest" %% "scalatest" % "3.0.4" % "test" :: Nil,
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0" ::
+      "org.scalameta" %% "scalameta" % "4.1.9" ::
+      "org.typelevel" %% "cats-core" % "1.6.0" ::
+      "org.scalatest" %% "scalatest" % "3.0.5" % "test" :: Nil,
   scalacOptions ++=
     "-Ypartial-unification" ::
       "-Xfatal-warnings" ::
@@ -41,3 +38,4 @@ lazy val sbtScalagen =
         Seq("-Xmx1024M", "-Dplugin.version=" + version.value)
     }, scriptedBufferLog := false, moduleName := "sbt-scalagen")
     .dependsOn(scalagen)
+    .enablePlugins(SbtPlugin)
