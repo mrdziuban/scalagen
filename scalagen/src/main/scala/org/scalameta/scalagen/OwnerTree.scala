@@ -1,7 +1,6 @@
 package org.scalameta.scalagen
 
 import cats._
-import cats.implicits._
 import scala.meta._
 import scala.meta.gen._
 

@@ -1,10 +1,8 @@
 package org.scalameta.scalagen
 
-import org.scalatest.FunSuite
-
-import scala.meta._
 import cats._
-import cats.implicits._
+import org.scalatest.FunSuite
+import scala.meta._
 
 class StatOwnerTreeTests extends FunSuite {
 

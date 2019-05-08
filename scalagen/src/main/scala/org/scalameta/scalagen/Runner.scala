@@ -29,7 +29,7 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
 
   // These are necessary due to restrictions with how we can traverse the tree.
   // It's possible that with more transformation strategies, these would be unnecessary.
-  val transmutationCache: mutable.Map[Structurally[Tree], TransmutationResult] = mutable.Map()
+  val transmutationCache: mutable.Map[Structurally[Tree], List[TransmutationResult]] = mutable.Map()
   val companionExtensionCache: mutable.Map[String, List[Stat]] = mutable.Map()
 
   // TODO: Make the asInstanceOf not necessary by using a custom transform
@@ -108,8 +108,15 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
     */
   private def applyTransmutationResult[A <: Tree: StatReplacer: StatExtractor](
       a: A,
-      r: TransmutationResult): A =
-    a.withStats(a.extract[Stat].filterNot(t => t isEqual r.in) ::: r.out)
+      rs: List[TransmutationResult]): A =
+    a.withStats(
+      a.extract[Stat].filter(t => rs.find(r => t.isEqual(r.in)).isEmpty) ::: rs.flatMap(_.out))
+
+  def updateTransmutationCache(owner: Structurally[Tree], r: TransmutationResult): Unit =
+    transmutationCache.put(owner, transmutationCache.get(owner) match {
+      case Some(rs) => rs :+ r
+      case None => List(r)
+    })
 
   /**
     * Add stats that have been waiting to be added.
@@ -142,13 +149,13 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
     val res = param match {
       case tp: Term.Param =>
         val stats = generator.extend(tp)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(param.owner.get)),
           TransmutationResult(q"{}", stats))
         removeAnnot(tp, generator.name)
       case tp: Type.Param =>
         val stats = generator.extend(tp)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(param.owner.get)),
           TransmutationResult(q"{}", stats))
         removeAnnot(tp, generator.name)
@@ -187,7 +194,7 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
         val clazzWithoutAnnot: Defn.Class = removeAnnot(c, g.name)
         if (c.companionObject.isEmpty) {
           val defns: List[Defn] = clazzWithoutAnnot :: genCompanion(c.name.asTerm, stats) :: Nil
-          transmutationCache.put(
+          updateTransmutationCache(
             Structurally(withoutStatsOrParams(c.parent.get)),
             TransmutationResult(clazzWithoutAnnot, defns))
         } else {
@@ -200,7 +207,7 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
         val typeWithoutAnnot: Defn.Type = removeAnnot(t, g.name)
         if (t.companionObject.isEmpty) {
           val defns: List[Defn] = typeWithoutAnnot :: genCompanion(t.name.asTerm, stats) :: Nil
-          transmutationCache.put(
+          updateTransmutationCache(
             Structurally(withoutStatsOrParams(t.parent.get)),
             TransmutationResult(typeWithoutAnnot, defns))
         } else {
@@ -213,7 +220,7 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
         val traitWithoutAnnot: Defn.Trait = removeAnnot(t, g.name)
         if (t.companionObject.isEmpty) {
           val defns: List[Defn] = traitWithoutAnnot :: genCompanion(t.name.asTerm, stats) :: Nil
-          transmutationCache.put(
+          updateTransmutationCache(
             Structurally(withoutStatsOrParams(t.parent.get)),
             TransmutationResult(traitWithoutAnnot, defns))
         } else {
@@ -305,67 +312,67 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
     val res = in match {
       case c: Defn.Class =>
         val clazzWithoutAnnot = removeAnnot(c, g.name)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(c.parent.get)),
           TransmutationResult(clazzWithoutAnnot, g.transmute(c)))
         clazzWithoutAnnot
       case o: Defn.Object =>
         val objectWithoutAnnot = removeAnnot(o, g.name)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(o.parent.get)),
           TransmutationResult(objectWithoutAnnot, g.transmute(o)))
         objectWithoutAnnot
       case t: Defn.Trait =>
         val traitWithoutAnnot = removeAnnot(t, g.name)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(t.parent.get)),
           TransmutationResult(traitWithoutAnnot, g.transmute(t)))
         traitWithoutAnnot
       case t: Defn.Type =>
         val tpeWithoutAnnot = removeAnnot(t, g.name)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(t.parent.get)),
           TransmutationResult(tpeWithoutAnnot, g.transmute(t)))
         tpeWithoutAnnot
       case d: Defn.Def =>
         val defWithoutAnnot = removeAnnot(d, g.name)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(d.parent.get)),
           TransmutationResult(defWithoutAnnot, g.transmute(d)))
         defWithoutAnnot
       case v: Defn.Val =>
         val valWithoutAnnot = removeAnnot(v, g.name)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(v.parent.get)),
           TransmutationResult(valWithoutAnnot, g.transmute(v)))
         valWithoutAnnot
       case v: Defn.Var =>
         val varWithoutAnnot = removeAnnot(v, g.name)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(v.parent.get)),
           TransmutationResult(varWithoutAnnot, g.transmute(v)))
         varWithoutAnnot
       case d: Decl.Def =>
         val defWithoutAnnot = removeAnnot(d, g.name)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(d.parent.get)),
           TransmutationResult(defWithoutAnnot, g.transmute(d)))
         defWithoutAnnot
       case v: Decl.Val =>
         val valWithoutAnnot = removeAnnot(v, g.name)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(v.parent.get)),
           TransmutationResult(valWithoutAnnot, g.transmute(v)))
         valWithoutAnnot
       case v: Decl.Var =>
         val varWithoutAnnot = removeAnnot(v, g.name)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(v.parent.get)),
           TransmutationResult(varWithoutAnnot, g.transmute(v)))
         varWithoutAnnot
       case t: Decl.Type =>
         val tpeWithoutAnnot = removeAnnot(t, g.name)
-        transmutationCache.put(
+        updateTransmutationCache(
           Structurally(withoutStatsOrParams(t.parent.get)),
           TransmutationResult(tpeWithoutAnnot, g.transmute(t)))
         tpeWithoutAnnot
