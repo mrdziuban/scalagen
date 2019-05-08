@@ -1,0 +1,4 @@
+<plugin>
+  <name>scalagen</name>
+  <classname>scala.meta.gen.PrintHiPlugin</classname>
+</plugin>

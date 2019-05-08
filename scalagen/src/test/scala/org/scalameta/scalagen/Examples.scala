@@ -1,7 +1,5 @@
 package org.scalameta.scalagen
 
-import fastparse.core.Logger
-
 import scala.meta._
 import scala.meta.contrib._
 import scala.meta.gen._

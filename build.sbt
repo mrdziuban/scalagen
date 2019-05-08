@@ -6,22 +6,69 @@ name := "scalagen"
 import sbt._
 import sbt.Keys._
 
-lazy val sharedSettings: Def.SettingsDefinition = Def.settings(
+lazy val sharedSettings = Seq(
   updateOptions := updateOptions.value.withCachedResolution(true),
   organization := "org.scalameta",
   version := "0.1",
   scalaVersion := "2.12.8",
-  libraryDependencies ++=
-    "ch.qos.logback" % "logback-classic" % "1.2.3" ::
-    "com.typesafe.scala-logging"  %% "scala-logging" % "3.9.0" ::
-    "org.scalameta" %% "scalameta" % "4.1.9" ::
-    "org.scalameta" %% "contrib"   % "4.1.6" ::
-    "org.typelevel" %% "cats-core" % "1.6.0" ::
-    "org.scalatest" %% "scalatest" % "3.0.5" % "test" :: Nil,
-  scalacOptions ++=
-    "-Ypartial-unification" ::
-    "-Xfatal-warnings" ::
-    Nil
+  libraryDependencies ++= Seq(
+    "ch.qos.logback" % "logback-classic" % "1.2.3",
+    "com.typesafe.scala-logging"  %% "scala-logging" % "3.9.0",
+    "org.scalameta" %% "scalameta" % "4.1.9",
+    "org.scalameta" %% "contrib"   % "4.1.6",
+    "org.typelevel" %% "cats-core" % "1.6.0",
+    "org.scalatest" %% "scalatest" % "3.0.5" % "test"
+  ),
+  addCompilerPlugin("io.tryp" % "splain" % "0.4.1" cross CrossVersion.patch),
+  scalacOptions ++= Seq(
+    "-deprecation",
+    "-encoding", "UTF-8",
+    "-explaintypes",
+    "-feature",
+    "-language:higherKinds",
+    "-language:implicitConversions",
+    "-unchecked",
+    "-P:splain:all",
+    "-Xcheckinit",
+    "-Xfatal-warnings",
+    "-Xfuture",
+    "-Xlint:adapted-args",
+    "-Xlint:by-name-right-associative",
+    "-Xlint:constant",
+    "-Xlint:delayedinit-select",
+    "-Xlint:doc-detached",
+    "-Xlint:inaccessible",
+    "-Xlint:infer-any",
+    "-Xlint:missing-interpolator",
+    "-Xlint:nullary-override",
+    "-Xlint:nullary-unit",
+    "-Xlint:option-implicit",
+    "-Xlint:package-object-classes",
+    "-Xlint:poly-implicit-overload",
+    "-Xlint:private-shadow",
+    "-Xlint:stars-align",
+    "-Xlint:type-parameter-shadow",
+    "-Xlint:unsound-match",
+    "-Yno-adapted-args",
+    "-Ypartial-unification",
+    "-Ywarn-dead-code",
+    "-Ywarn-extra-implicit",
+    "-Ywarn-inaccessible",
+    "-Ywarn-infer-any",
+    "-Ywarn-nullary-override",
+    "-Ywarn-nullary-unit",
+    "-Ywarn-numeric-widen",
+    "-Ywarn-unused:implicits",
+    "-Ywarn-unused:imports",
+    "-Ywarn-unused:locals",
+    "-Ywarn-unused:patvars",
+    "-Ywarn-unused:privates",
+    "-Ywarn-value-discard",
+    "-Ycache-plugin-class-loader:last-modified",
+    "-Ycache-macro-class-loader:last-modified"
+  ),
+  scalacOptions in (Compile, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings"),
+  scalacOptions in (Test, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings"),
 )
 
 lazy val scalagen =
@@ -40,3 +87,46 @@ lazy val sbtScalagen =
         Seq("-Xmx1024M", "-Dplugin.version=" + version.value)
     }, scriptedBufferLog := false, moduleName := "sbt-scalagen")
     .dependsOn(scalagen)
+
+lazy val duplicatedFiles = Set(
+  // scalahost also provides `scalac-plugin.xml`, but we are only interested in ours.
+  "scalac-plugin.xml",
+  ".class"
+)
+
+lazy val compilerPluginTest =
+  project
+    .in(file("scalagen-compiler-plugin/plugin-test"))
+    .settings(sharedSettings)
+    .settings(scalacOptions in Test ++= {
+      val jar = (assembly in (testCompilerPlugin, Compile)).value
+      Seq(s"-Xplugin:${jar.getAbsolutePath}", s"-Jdummy=${jar.lastModified}")
+    })
+
+lazy val testCompilerPlugin =
+  project
+    .in(file("scalagen-compiler-plugin/test-plugin"))
+    .settings(sharedSettings)
+    .settings(
+      name := "scalagen-test-compiler-plugin",
+      libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided",
+      assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false, includeDependency = true),
+      assemblyMergeStrategy in assembly := {
+        case x if duplicatedFiles.exists(x.endsWith) => MergeStrategy.first
+        case x => (assemblyMergeStrategy in assembly).value.apply(x)
+      },
+      skip in publish := true,
+    )
+    .dependsOn(compilerPlugin)
+    .aggregate(compilerPlugin)
+
+lazy val compilerPlugin =
+  project
+    .in(file("scalagen-compiler-plugin"))
+    .settings(sharedSettings)
+    .settings(Seq(
+      name := "scalagen-compiler-plugin",
+      libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided",
+    ))
+    .dependsOn(scalagen)
+    .aggregate(scalagen)
