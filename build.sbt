@@ -6,6 +6,10 @@ name := "scalagen"
 import sbt._
 import sbt.Keys._
 
+lazy val scalametaV = "4.1.6"
+lazy val splain = addCompilerPlugin("io.tryp" % "splain" % "0.4.1" cross CrossVersion.patch)
+lazy val semanticdb = addCompilerPlugin("org.scalameta" % "semanticdb-scalac" % scalametaV cross CrossVersion.full)
+
 lazy val sharedSettings = Seq(
   updateOptions := updateOptions.value.withCachedResolution(true),
   organization := "org.scalameta",
@@ -14,12 +18,13 @@ lazy val sharedSettings = Seq(
   libraryDependencies ++= Seq(
     "ch.qos.logback" % "logback-classic" % "1.2.3",
     "com.typesafe.scala-logging"  %% "scala-logging" % "3.9.0",
-    "org.scalameta" %% "scalameta" % "4.1.9",
-    "org.scalameta" %% "contrib"   % "4.1.6",
+    "org.scalameta" %% "scalameta" % scalametaV,
+    "org.scalameta" %% "contrib"   % scalametaV,
     "org.typelevel" %% "cats-core" % "1.6.0",
     "org.scalatest" %% "scalatest" % "3.0.5" % "test"
   ),
   addCompilerPlugin("io.tryp" % "splain" % "0.4.1" cross CrossVersion.patch),
+  semanticdb,
   scalacOptions ++= Seq(
     "-deprecation",
     "-encoding", "UTF-8",
@@ -82,51 +87,62 @@ lazy val sbtScalagen =
   project
     .in(file("scalagen-sbt"))
     .enablePlugins(SbtPlugin)
-    .settings(sharedSettings, sbtPlugin := true, scriptedLaunchOpts := {
-      scriptedLaunchOpts.value ++
-        Seq("-Xmx1024M", "-Dplugin.version=" + version.value)
-    }, scriptedBufferLog := false, moduleName := "sbt-scalagen")
-    .dependsOn(scalagen)
-
-lazy val duplicatedFiles = Set(
-  // scalahost also provides `scalac-plugin.xml`, but we are only interested in ours.
-  "scalac-plugin.xml",
-  ".class"
-)
-
-lazy val compilerPluginTest =
-  project
-    .in(file("scalagen-compiler-plugin/plugin-test"))
-    .settings(sharedSettings)
-    .settings(scalacOptions in Test ++= {
-      val jar = (assembly in (testCompilerPlugin, Compile)).value
-      Seq(s"-Xplugin:${jar.getAbsolutePath}", s"-Jdummy=${jar.lastModified}")
-    })
-
-lazy val testCompilerPlugin =
-  project
-    .in(file("scalagen-compiler-plugin/test-plugin"))
     .settings(sharedSettings)
     .settings(
-      name := "scalagen-test-compiler-plugin",
-      libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided",
-      assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false, includeDependency = true),
-      assemblyMergeStrategy in assembly := {
-        case x if duplicatedFiles.exists(x.endsWith) => MergeStrategy.first
-        case x => (assemblyMergeStrategy in assembly).value.apply(x)
-      },
-      skip in publish := true,
+      sbtPlugin := true,
+      scriptedLaunchOpts ++= Seq("-Dplugin.version=" + version.value),
+      scriptedBufferLog := false,
+      moduleName := "sbt-scalagen"
     )
-    .dependsOn(compilerPlugin)
-    .aggregate(compilerPlugin)
-
-lazy val compilerPlugin =
-  project
-    .in(file("scalagen-compiler-plugin"))
-    .settings(sharedSettings)
-    .settings(Seq(
-      name := "scalagen-compiler-plugin",
-      libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided",
-    ))
     .dependsOn(scalagen)
     .aggregate(scalagen)
+
+// lazy val duplicatedFiles = Set(
+//   // scalahost also provides `scalac-plugin.xml`, but we are only interested in ours.
+//   "scalac-plugin.xml",
+//   ".class"
+// )
+
+// lazy val compilerPluginTest =
+//   project
+//     .in(file("scalagen-compiler-plugin/plugin-test"))
+//     .settings(sharedSettings)
+//     .settings(
+//       semanticdbPlugin,
+//       scalacOptions in Test ++= {
+//         val jar = (assembly in (testCompilerPlugin, Compile)).value
+//         Seq(s"-Xplugin:${jar.getAbsolutePath}", s"-Jdummy=${jar.lastModified}")
+//       }
+//     )
+
+// lazy val testCompilerPlugin =
+//   project
+//     .in(file("scalagen-compiler-plugin/test-plugin"))
+//     .settings(sharedSettings)
+//     .settings(
+//       name := "scalagen-test-compiler-plugin",
+//       libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided",
+//       logLevel in assembly := Level.Debug,
+//       assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false, includeDependency = true),
+//       assemblyMergeStrategy in assembly := {
+//         case x if duplicatedFiles.exists(x.endsWith) => MergeStrategy.first
+//         case x => (assemblyMergeStrategy in assembly).value.apply(x)
+//       },
+//       skip in publish := true,
+//     )
+//     .dependsOn(compilerPlugin)
+//     .aggregate(compilerPlugin)
+
+// lazy val compilerPlugin =
+//   project
+//     .in(file("scalagen-compiler-plugin"))
+//     .settings(sharedSettings)
+//     .settings(Seq(
+//       name := "scalagen-compiler-plugin",
+//       libraryDependencies ++= Seq(
+//         "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided",
+//         "org.scalameta" %% "semanticdb" % scalametaV
+//       ),
+//     ))
+//     .dependsOn(scalagen)
+//     .aggregate(scalagen)

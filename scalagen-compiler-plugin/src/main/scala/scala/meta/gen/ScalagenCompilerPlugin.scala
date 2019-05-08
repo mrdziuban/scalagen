@@ -53,8 +53,7 @@ abstract class ScalagenCompilerPlugin(override val global: Global) extends Plugi
       override def apply(unit: CompilationUnit): Unit =
         newTransformer(unit).transformUnit(unit)
     }
-    override val runsAfter: List[String]  = "parser" :: Nil
-    override val runsBefore: List[String] = "namer" :: Nil
+    override val runsAfter: List[String]  = "typer" :: Nil
 
     private def newTransformer(unit: CompilationUnit) =
       new TypingTransformer(unit) {
