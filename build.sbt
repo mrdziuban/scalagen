@@ -6,20 +6,19 @@ name := "scalagen"
 import sbt._
 import sbt.Keys._
 
-lazy val scalametaV = "4.1.6"
+lazy val scalametaV = "4.1.9"
 lazy val splain = addCompilerPlugin("io.tryp" % "splain" % "0.4.1" cross CrossVersion.patch)
 lazy val semanticdb = addCompilerPlugin("org.scalameta" % "semanticdb-scalac" % scalametaV cross CrossVersion.full)
 
 lazy val sharedSettings = Seq(
   updateOptions := updateOptions.value.withCachedResolution(true),
   organization := "org.scalameta",
-  version := "0.1.1",
+  version := "0.1.3-MD2",
   scalaVersion := "2.12.8",
   libraryDependencies ++= Seq(
     "ch.qos.logback" % "logback-classic" % "1.2.3",
     "com.typesafe.scala-logging"  %% "scala-logging" % "3.9.0",
     "org.scalameta" %% "scalameta" % scalametaV,
-    "org.scalameta" %% "contrib"   % scalametaV,
     "org.typelevel" %% "cats-core" % "1.6.0",
     "org.scalatest" %% "scalatest" % "3.0.5" % "test"
   ),

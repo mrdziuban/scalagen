@@ -71,6 +71,7 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
     val postTransmutate = finalizeTransmutations(t)
     val postCompanion = finalizeCompanion(postTransmutate)
     val result = generator.foldLeft(postCompanion)((c, g) => applyGenerator(c, g))
+    println(s"\n\nresult: $result\n\n")
 
     // If we are expanding recursive definitions
     if (recurse && !result.isEqual(t)) {
@@ -108,8 +109,10 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
     */
   private def applyTransmutationResult[A <: Tree: StatReplacer: StatExtractor](
       a: A,
-      r: TransmutationResult): A =
+      r: TransmutationResult): A = {
+    println(s"\n\n\nAPPLY TRANSMUTATION RESULT: ${a.extract[Stat]}\n\n$r\n\n\n")
     a.withStats(a.extract[Stat].filterNot(t => t isEqual r.in) ::: r.out)
+  }
 
   /**
     * Add stats that have been waiting to be added.
@@ -122,6 +125,7 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
   private def finalizeCompanion(tree: Tree): Tree = {
     tree match {
       case o: Defn.Object =>
+        println(s"\n\n\nFINALIZING COMPANION: $tree\n\n$o\n\n\n")
         val stats = companionExtensionCache.remove(o.name.value).getOrElse(Nil)
         o.withStats(o.extract[Stat] ::: stats)
       case other => other
@@ -223,6 +227,8 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
         traitWithoutAnnot
     }
 
+    println(s"\n\n\nRESULT: $res\n\n$transmutationCache\n\n$companionExtensionCache\n\n\n")
+
     res.asInstanceOf[A]
   }
 
@@ -231,12 +237,16 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
   private def withoutStatsOrParams[A <: Tree](t: A): A = {
     val res = t match {
       case templ: Template =>
+        println(s"\n\n\nWITHOUT STATS TEMPL: ${templ.withStats(Nil)}\n\n\n")
         templ.withStats(Nil)
       case pkg: Pkg =>
+        println(s"\n\n\nWITHOUT STATS PKG: $t\n\n\n")
         pkg.withStats(Nil)
       case b: Term.Block =>
+        println(s"\n\n\nWITHOUT STATS BLOCK: $t\n\n\n")
         b.withStats(Nil)
       case s: Source =>
+        println(s"\n\n\nWITHOUT STATS SOURCE: $t\n\n\n")
         s.withStats(Nil)
       case other => other
     }
@@ -299,6 +309,7 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
     * The defns are just a list of definitions being replaced.
     */
   private def applyTransmutator[A <: Tree](in: A, g: TransmutationGenerator): A = {
+    println(s"\n\n\nAPPLY TRANSMUTATOR: $in\n\n\n")
     assert(
       in.parent.isDefined,
       s"Transmutation generator '${g.name}' relies on the annotee having a parent")
