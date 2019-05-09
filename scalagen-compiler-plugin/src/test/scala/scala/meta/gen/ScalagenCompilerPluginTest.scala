@@ -1,5 +1,3 @@
 package scala.meta.gen
 
-object ScalagenCompilerPluginTest {
-
-}
+object ScalagenCompilerPluginTest {}

@@ -13,7 +13,7 @@ lazy val semanticdb = addCompilerPlugin("org.scalameta" % "semanticdb-scalac" % 
 lazy val sharedSettings = Seq(
   updateOptions := updateOptions.value.withCachedResolution(true),
   organization := "org.scalameta",
-  version := "0.1",
+  version := "0.1.1",
   scalaVersion := "2.12.8",
   libraryDependencies ++= Seq(
     "ch.qos.logback" % "logback-classic" % "1.2.3",

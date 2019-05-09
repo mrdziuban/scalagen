@@ -7,13 +7,14 @@ import scala.tools.nsc.transform.TypingTransformers
 abstract class ScalagenCompilerPlugin(override val global: Global) extends Plugin {
   import global._
 
-  override lazy val description: String = s"Generates code with generators: ${generators.mkString(", ")}"
+  override lazy val description: String =
+    s"Generates code with generators: ${generators.mkString(", ")}"
 
   // scalagen generators to run
   def generators: List[Generator]
 
   // Use to create code that shortcuts in ENSIME and ScalaIDE
-  def isIde: Boolean      = global.isInstanceOf[tools.nsc.interactive.Global]
+  def isIde: Boolean = global.isInstanceOf[tools.nsc.interactive.Global]
   def isScaladoc: Boolean = global.isInstanceOf[tools.nsc.doc.ScaladocGlobal]
 
   private case class PrettyPrinter(level: Int, inQuotes: Boolean, backslashed: Boolean) {
@@ -35,10 +36,15 @@ abstract class ScalagenCompilerPlugin(override val global: Global) extends Plugi
   }
 
   private def prettyPrint(raw: String): String =
-    raw.foldLeft((PrettyPrinter(0, false, false), new StringBuilder(""))) { case ((pp, sb), char) =>
-      val (newPP, res) = pp.transform(char)
-      (newPP, sb.append(res))
-    }._2.toString.replaceAll("""\(\s+\)""", "()")
+    raw
+      .foldLeft((PrettyPrinter(0, false, false), new StringBuilder(""))) {
+        case ((pp, sb), char) =>
+          val (newPP, res) = pp.transform(char)
+          (newPP, sb.append(res))
+      }
+      ._2
+      .toString
+      .replaceAll("""\(\s+\)""", "()")
 
   private def showTree(tree: Tree, pretty: Boolean): String =
     if (pretty) prettyPrint(showRaw(tree)) else showRaw(tree)
@@ -48,12 +54,13 @@ abstract class ScalagenCompilerPlugin(override val global: Global) extends Plugi
 
   private def phase = new PluginComponent with TypingTransformers {
     override val phaseName: String = ScalagenCompilerPlugin.this.name
-    override val global: ScalagenCompilerPlugin.this.global.type = ScalagenCompilerPlugin.this.global
+    override val global: ScalagenCompilerPlugin.this.global.type =
+      ScalagenCompilerPlugin.this.global
     override final def newPhase(prev: Phase): Phase = new StdPhase(prev) {
       override def apply(unit: CompilationUnit): Unit =
         newTransformer(unit).transformUnit(unit)
     }
-    override val runsAfter: List[String]  = "typer" :: Nil
+    override val runsAfter: List[String] = "typer" :: Nil
 
     private def newTransformer(unit: CompilationUnit) =
       new TypingTransformer(unit) {
@@ -69,4 +76,3 @@ abstract class ScalagenCompilerPlugin(override val global: Global) extends Plugi
 
   override lazy val components: List[PluginComponent] = List(phase)
 }
-
