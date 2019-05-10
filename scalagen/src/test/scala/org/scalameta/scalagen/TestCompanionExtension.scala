@@ -5,29 +5,29 @@ import scala.meta.contrib._
 
 class TestCompanionExtension extends GeneratorSuite {
 
-  // test("Companion extension works with companion absent") {
-  //   val src: Source = source"@PrintHiInCompanion case class Foo()"
+  test("Companion extension works with companion absent") {
+    val src: Source = source"@PrintHiInCompanion case class Foo()"
 
-  //   val expected: Source =
-  //     source"""case class Foo()
+    val expected: Source =
+      source"""case class Foo()
 
-  //              object Foo {
-  //                def hi = println("hi")
-  //              }
-  //            """
+               object Foo {
+                 def hi = println("hi")
+               }
+             """
 
-  //   val res = generate(src, PrintHiInCompanion)
+    val res = generate(src, PrintHiInCompanion)
 
-  //   withClue(res.syntax) {
-  //     assert(expected isEqual res)
-  //   }
-  // }
+    withClue(res.syntax) {
+      assert(expected isEqual res)
+    }
+  }
 
   test("Companion extension works with multiple case classes") {
     val src = source"""
       object types {
-        @PrintHiInCompanion case class Foo(); object Foo {}
-        @PrintHiInCompanion case class Bar(); object Bar {}
+        @PrintHiInCompanion case class Foo()
+        @PrintHiInCompanion case class Bar()
       }
     """
 
@@ -47,36 +47,35 @@ class TestCompanionExtension extends GeneratorSuite {
       """
 
     val res = generate(src, PrintHiInCompanion)
-    println(res.syntax)
 
     withClue(res.syntax) {
       assert(expected isEqual res)
     }
   }
 
-  // test("Companion extension works with companion present") {
-  //   val src: Source =
-  //     source"""@PrintHiInCompanion
-  //              case class Foo()
+  test("Companion extension works with companion present") {
+    val src: Source =
+      source"""@PrintHiInCompanion
+               case class Foo()
 
-  //              object Foo {
-  //                def foo = ???
-  //              }
-  //            """
+               object Foo {
+                 def foo = ???
+               }
+             """
 
-  //   val expected: Source =
-  //     source"""case class Foo()
+    val expected: Source =
+      source"""case class Foo()
 
-  //              object Foo {
-  //                def foo = ???
-  //                def hi = println("hi")
-  //              }
-  //            """
+               object Foo {
+                 def foo = ???
+                 def hi = println("hi")
+               }
+             """
 
-  //   val res = generate(src, PrintHiInCompanion)
+    val res = generate(src, PrintHiInCompanion)
 
-  //   withClue(res.syntax) {
-  //     assert(expected isEqual res)
-  //   }
-  // }
+    withClue(res.syntax) {
+      assert(expected isEqual res)
+    }
+  }
 }
