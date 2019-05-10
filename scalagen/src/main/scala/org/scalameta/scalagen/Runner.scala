@@ -97,6 +97,8 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
         applyTransmutationResult(b, transmutationCache.remove(b.withStats(Nil)).get)
       case s: Source if transmutationCache.contains(s.withStats(Nil)) =>
         applyTransmutationResult(s, transmutationCache.remove(s.withStats(Nil)).get)
+      case o: Defn.Object if transmutationCache.contains(o.withStats(Nil)) =>
+        applyTransmutationResult(o, transmutationCache.remove(o.withStats(Nil)).get)
       case other => other
     }
   }
@@ -195,7 +197,7 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
         if (c.companionObject.isEmpty) {
           val defns: List[Defn] = clazzWithoutAnnot :: genCompanion(c.name.asTerm, stats) :: Nil
           updateTransmutationCache(
-            Structurally(withoutStatsOrParams(c.parent.get)),
+            Structurally(withoutStatsOrParams(c.owner.get)),
             TransmutationResult(clazzWithoutAnnot, defns))
         } else {
           //TODO: Check that the companion has not already been transformed
@@ -245,6 +247,8 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
         b.withStats(Nil)
       case s: Source =>
         s.withStats(Nil)
+      case o: Defn.Object =>
+        o.withStats(Nil)
       case other => other
     }
 
