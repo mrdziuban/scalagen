@@ -24,12 +24,14 @@ class TestCompanionExtension extends GeneratorSuite {
   // }
 
   test("Companion extension works with multiple case classes") {
-    val src: Source = source"""
-        @PrintHiInCompanion case class Foo()
-        case class Bar()
+    val src = source"""
+      object types {
+        @PrintHiInCompanion case class Foo(); object Foo {}
+        @PrintHiInCompanion case class Bar(); object Bar {}
+      }
     """
 
-    val expected: Source =
+    val expected =
       source"""
         object types {
           case class Foo()
@@ -38,6 +40,9 @@ class TestCompanionExtension extends GeneratorSuite {
           }
 
           case class Bar()
+          object Bar {
+            def hi = println("hi")
+          }
         }
       """
 
