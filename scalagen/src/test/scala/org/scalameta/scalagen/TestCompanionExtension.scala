@@ -53,6 +53,39 @@ class TestCompanionExtension extends GeneratorSuite {
     }
   }
 
+  test("Companion extension preserves order") {
+    val src = source"""
+      object types {
+        @PrintHiInCompanion case class Foo()
+        case class Bar()
+        @PrintHiInCompanion case class Baz()
+      }
+    """
+
+    val expected =
+      source"""
+        object types {
+          case class Foo()
+          object Foo {
+            def hi = println("hi")
+          }
+
+          case class Bar()
+
+          case class Baz()
+          object Baz {
+            def hi = println("hi")
+          }
+        }
+      """
+
+    val res = generate(src, PrintHiInCompanion)
+
+    withClue(res.syntax) {
+      assert(expected isEqual res)
+    }
+  }
+
   test("Companion extension works with companion present") {
     val src: Source =
       source"""@PrintHiInCompanion

@@ -110,9 +110,16 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
     */
   private def applyTransmutationResult[A <: Tree: StatReplacer: StatExtractor](
       a: A,
-      rs: List[TransmutationResult]): A =
-    a.withStats(
-      a.extract[Stat].filter(t => rs.find(r => t.isEqual(r.in)).isEmpty) ::: rs.flatMap(_.out))
+      rs: List[TransmutationResult]): A = {
+    val (rem, stats) = a.extract[Stat].foldLeft((rs, List[Stat]())) {
+      case ((curr, s), t) =>
+        curr.partition(r => t.isEqual(r.in)) match {
+          case (Nil, next) => (next, s :+ t)
+          case (toAdd, next) => (next, s ++ toAdd.flatMap(_.out))
+        }
+    }
+    a.withStats(stats ::: rem.flatMap(_.out))
+  }
 
   def updateTransmutationCache(owner: Structurally[Tree], r: TransmutationResult): Unit =
     transmutationCache.put(owner, transmutationCache.get(owner) match {
