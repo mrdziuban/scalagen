@@ -28,13 +28,13 @@ object PrintHi extends ExtensionGenerator("PrintHi") {
 }
 
 object PrintHiInCompanion extends CompanionGenerator("PrintHiInCompanion") {
-  override def extendCompanion(c: Defn.Class): List[Stat] = {
-    val hi: Lit.String = Lit.String("hi")
-    val hiMethod: Defn.Def =
-      q"def hi = println($hi)"
+  lazy val hi: Lit.String = Lit.String("hi")
+  lazy val hiMethod: Defn.Def =
+    q"def hi = println($hi)"
 
-    hiMethod :: Nil
-  }
+  override def extendCompanion(c: Defn.Class): List[Stat] = hiMethod :: Nil
+  override def extendCompanion(c: Defn.Trait): List[Stat] = hiMethod :: Nil
+  override def extendCompanion(c: Defn.Type): List[Stat] = hiMethod :: Nil
 }
 
 object TestRecurse extends ExtensionGenerator("TestRecurse") {

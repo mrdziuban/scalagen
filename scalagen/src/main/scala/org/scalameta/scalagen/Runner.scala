@@ -99,6 +99,8 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
         applyTransmutationResult(s, transmutationCache.remove(s.withStats(Nil)).get)
       case o: Defn.Object if transmutationCache.contains(o.withStats(Nil)) =>
         applyTransmutationResult(o, transmutationCache.remove(o.withStats(Nil)).get)
+      case c: Defn.Class if transmutationCache.contains(c.withStats(Nil)) =>
+        applyTransmutationResult(c, transmutationCache.remove(c.withStats(Nil)).get)
       case other => other
     }
   }
@@ -158,16 +160,19 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
     val res = param match {
       case tp: Term.Param =>
         val stats = generator.extend(tp)
+        val tpWithoutAnnot: Term.Param = removeAnnot(tp, generator.name)
+        val owner = tp.parent.flatMap(_.parent).collect { case s: Stat => s }.get
         updateTransmutationCache(
-          Structurally(withoutStatsOrParams(param.owner.get)),
-          TransmutationResult(q"{}", stats))
-        removeAnnot(tp, generator.name)
+          Structurally(withoutStatsOrParams(owner).replaceParam(tpWithoutAnnot)),
+          TransmutationResult(owner, stats))
+        tpWithoutAnnot
       case tp: Type.Param =>
         val stats = generator.extend(tp)
+        val tpWithoutAnnot: Type.Param = removeAnnot(tp, generator.name)
         updateTransmutationCache(
           Structurally(withoutStatsOrParams(param.owner.get)),
           TransmutationResult(q"{}", stats))
-        removeAnnot(tp, generator.name)
+        tpWithoutAnnot
     }
 
     res.asInstanceOf[A]
@@ -217,7 +222,7 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
         if (t.companionObject.isEmpty) {
           val defns: List[Defn] = typeWithoutAnnot :: genCompanion(t.name.asTerm, stats) :: Nil
           updateTransmutationCache(
-            Structurally(withoutStatsOrParams(t.parent.get)),
+            Structurally(withoutStatsOrParams(t.owner.get)),
             TransmutationResult(typeWithoutAnnot, defns))
         } else {
           //TODO: Check that the companion has not already been transformed
@@ -230,7 +235,7 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
         if (t.companionObject.isEmpty) {
           val defns: List[Defn] = traitWithoutAnnot :: genCompanion(t.name.asTerm, stats) :: Nil
           updateTransmutationCache(
-            Structurally(withoutStatsOrParams(t.parent.get)),
+            Structurally(withoutStatsOrParams(t.owner.get)),
             TransmutationResult(traitWithoutAnnot, defns))
         } else {
           //TODO: Check that the companion has not already been transformed
@@ -256,6 +261,8 @@ case class Runner(generators: Set[Generator], recurse: Boolean = false) {
         s.withStats(Nil)
       case o: Defn.Object =>
         o.withStats(Nil)
+      case c: Defn.Class =>
+        c.withStats(Nil)
       case other => other
     }
 

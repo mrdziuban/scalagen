@@ -1,37 +1,54 @@
 package org.scalameta.scalagen
 
+import org.scalatest.Assertion
 import scala.meta._
 import scala.meta.contrib._
+import scala.meta.gen.Generator
 
 class TestCompanionExtension extends GeneratorSuite {
 
-  test("Companion extension works with companion absent") {
-    val src: Source = source"@PrintHiInCompanion case class Foo()"
+  def testEqual(src: Source, expected: Source, extraGenerators: Generator*): Assertion = {
+    val res = generate(src, (PrintHiInCompanion +: extraGenerators):_*)
+    withClue(res.syntax)(assert(expected.isEqual(res)))
+  }
 
-    val expected: Source =
+  test("Companion extension works with companion absent") {
+    testEqual(
+      source"@PrintHiInCompanion case class Foo()",
       source"""case class Foo()
 
                object Foo {
                  def hi = println("hi")
                }
-             """
+             """)
+  }
 
-    val res = generate(src, PrintHiInCompanion)
+  test("Companion extension works with companion present") {
+    testEqual(
+      source"""@PrintHiInCompanion
+               case class Foo()
 
-    withClue(res.syntax) {
-      assert(expected isEqual res)
-    }
+               object Foo {
+                 def foo = ???
+               }
+             """,
+      source"""case class Foo()
+
+               object Foo {
+                 def foo = ???
+                 def hi = println("hi")
+               }
+             """)
   }
 
   test("Companion extension works with multiple case classes") {
-    val src = source"""
-      object types {
-        @PrintHiInCompanion case class Foo()
-        @PrintHiInCompanion case class Bar()
-      }
-    """
-
-    val expected =
+    testEqual(
+      source"""
+        object types {
+          @PrintHiInCompanion case class Foo()
+          @PrintHiInCompanion case class Bar()
+        }
+      """,
       source"""
         object types {
           case class Foo()
@@ -44,25 +61,18 @@ class TestCompanionExtension extends GeneratorSuite {
             def hi = println("hi")
           }
         }
-      """
-
-    val res = generate(src, PrintHiInCompanion)
-
-    withClue(res.syntax) {
-      assert(expected isEqual res)
-    }
+      """)
   }
 
   test("Companion extension preserves order") {
-    val src = source"""
-      object types {
-        @PrintHiInCompanion case class Foo()
-        case class Bar()
-        @PrintHiInCompanion case class Baz()
-      }
-    """
-
-    val expected =
+    testEqual(
+      source"""
+        object types {
+          @PrintHiInCompanion case class Foo()
+          case class Bar()
+          @PrintHiInCompanion case class Baz()
+        }
+      """,
       source"""
         object types {
           case class Foo()
@@ -77,38 +87,62 @@ class TestCompanionExtension extends GeneratorSuite {
             def hi = println("hi")
           }
         }
-      """
-
-    val res = generate(src, PrintHiInCompanion)
-
-    withClue(res.syntax) {
-      assert(expected isEqual res)
-    }
+      """)
   }
 
-  test("Companion extension works with companion present") {
-    val src: Source =
-      source"""@PrintHiInCompanion
-               case class Foo()
+  // test("Companion extension works with param generator") {
+  //   testEqual(
+  //     source"@PrintHiInCompanion case class Foo(@NonNull x: String)",
+  //     source"""
+  //       case class Foo(x: String) {
+  //         assert(x != null)
+  //       }
+  //       object Foo {
+  //         def hi = println("hi")
+  //       }
+  //     """,
+  //     NonNull)
+  // }
 
-               object Foo {
-                 def foo = ???
-               }
-             """
+  test("Companion extension works with multiple types") {
+    testEqual(
+      source"""
+        object types {
+          @PrintHiInCompanion sealed trait TestTrait
+          case object A extends TestTrait
+          @PrintHiInCompanion case class B() extends TestTrait
 
-    val expected: Source =
-      source"""case class Foo()
+          @PrintHiInCompanion type TestType = String
 
-               object Foo {
-                 def foo = ???
-                 def hi = println("hi")
-               }
-             """
+          @PrintHiInCompanion case class TestClass()
 
-    val res = generate(src, PrintHiInCompanion)
+          trait TestTrait2
+        }
+      """,
+      source"""
+        object types {
+          sealed trait TestTrait
+          object TestTrait {
+            def hi = println("hi")
+          }
+          case object A extends TestTrait
+          case class B() extends TestTrait
+          object B {
+            def hi = println("hi")
+          }
 
-    withClue(res.syntax) {
-      assert(expected isEqual res)
-    }
+          type TestType = String
+          object TestType {
+            def hi = println("hi")
+          }
+
+          case class TestClass()
+          object TestClass {
+            def hi = println("hi")
+          }
+
+          trait TestTrait2
+        }
+      """)
   }
 }

@@ -1,4 +1,6 @@
-package scala.meta.gen.implicits
+package scala.meta
+package gen
+package implicits
 
 import scala.meta._
 
@@ -30,7 +32,7 @@ import scala.meta._
   */
 trait StatOwner {
 
-  implicit class XtensionStatOwner(t: Tree) {
+  implicit class XtensionStatOwner[A <: Tree](t: A) {
 
     /**
       * Whether this tree is indeed an "Owner"
